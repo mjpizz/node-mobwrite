@@ -62,17 +62,17 @@ middleware = (options) ->
   logger = options?.logger
   daemonPort = options?.port or DEFAULT_DAEMON_PORT
   daemonHost = options?.host or DEFAULT_DAEMON_HOST
+  root = options?.root or "__mobwrite__"
   serve({logger: logger, port: daemonPort, host: daemonHost})
 
+  # Make a pattern that we can match inbound requests for mobwrite middleware.
+  rootPattern = new RegExp("#{root}/([^\/]+)")
+
   # Create a connect middleware (e.g. for use in ExpressJS).
+  # TODO: verify that this works with plain http.createServer()
   bodyParser = connect.bodyParser()
   return (req, res, next) ->
-
-    # Parse the POST body and bail out if there was no data in there.
     bodyParser req, res, ->
-      if not req.body?
-        req.on "end", ->
-        res.send(500, "missing body in POST")
 
       # Respond to any requests to the sample q.py/q.php/q.jsp endpoints
       # by grabbing the "q" or "p" parameters and interacting with the Daemon.
@@ -80,9 +80,9 @@ middleware = (options) ->
       # /__mobwrite__/sync (POST)
       # /__mobwrite__/client.js (GET)
       # /__mobwrite__/forms.js (GET)
-      else if MOBWRITE_SAMPLE_ENDPOINT_PATTERN.test(req.url)
-        clientNeedsJsonp = req.body?.p?
-        daemonRequest = req.body.q or req.body.p or "\n"
+      if MOBWRITE_SAMPLE_ENDPOINT_PATTERN.test(req.url) or rootPattern.test(req.url)
+        clientNeedsJsonp = req.query.p?
+        daemonRequest = req.body?.q or req.query.p or "\n"
         daemonResponse = ""
 
         # Open a socket to the daemon.
@@ -100,61 +100,84 @@ middleware = (options) ->
         daemonSocket.on "end", ->
           logger?.log(">>> socket finished reading from daemon")
           if clientNeedsJsonp
-            daemonResponse = daemonResponse.replace("\\", "\\\\").replace("\"", "\\\"")
-            daemonResponse = daemonResponse.replace("\n", "\\n").replace("\r", "\\r")
+            daemonResponse = daemonResponse.replace(new RegExp("\\\\", "g"), "\\\\")
+            daemonResponse = daemonResponse.replace(new RegExp("\\\"", "g"), "\\\"")
+            daemonResponse = daemonResponse.replace(new RegExp("\\n", "g"), "\\n")
+            daemonResponse = daemonResponse.replace(new RegExp("\\r", "g"), "\\r")
             daemonResponse = "mobwrite.callback(\"#{daemonResponse}\");"
-          res.send(daemonResponse)
+          console.warn(">> sending to client\n---\n#{daemonResponse}\n---")
+          res.writeHead(200, {"Content-Type": "text/javascript"})
+          res.end(daemonResponse)
 
         daemonSocket.on "timeout", (err) ->
           logger?.log("!!! socket timeout: #{err}")
-          res.send(500, err.toString())
+          res.writeHead(500)
+          res.end(err.toString())
 
         daemonSocket.on "error", (err) ->
           logger?.log("!!! socket error: #{err}")
-          res.send(500, err.toString())
+          res.writeHead(500)
+          res.end(err.toString())
 
 module.exports = middleware
 
 if module is require.main
-  app = require("express")()
+  express = require("express")
+  app = express()
   app.get "/editor", (req, res) ->
     res.send("""
-      <HTML>
-      <HEAD>
-      <TITLE>MobWrite as a Collaborative Editor</TITLE>
-      <STYLE type="text/css">
-      BODY {
-        background-color: white;
-        font-family: sans-serif;
-      }
-      H1, H2, H3 {
-        font-weight: normal;
-      }
-      TEXTAREA {
-        font-family: sans-serif;
-      }
-      </STYLE>
-      <SCRIPT>
+      <html>
+      <head>
+      <title>MobWrite as a Collaborative Editor (Remote)</title>
+      <style type="text/css">
+          body {
+            background-color: white;
+            font-family: sans-serif;
+          }
+          h1, h2, h3 { font-weight: normal; }
+          table{ width:100%; height:100%; }
+          input{ width:50%; }
+          textarea {
+              width:100%;
+              height:100%;
+              font-family: sans-serif;
+          }
+      </style>
+      <script>
       #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/diff_match_patch_uncompressed.js"))};
       #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/mobwrite_core.js"))};
       #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/mobwrite_form.js"))};
-      mobwrite.debug = true;
-      </SCRIPT>
-      </HEAD>
-      <BODY ONLOAD="mobwrite.share('demo_editor_title', 'demo_editor_text');">
-
-      <TABLE STYLE="height: 100%; width: 100%">
-
-      <TR><TD HEIGHT=1><H1>MobWrite as a Collaborative Editor</H1></TD></TR>
-
-      <TR><TD HEIGHT=1><INPUT TYPE="text" ID="demo_editor_title" STYLE="width: 50%"></TD></TR>
-
-      <TR><TD><TEXTAREA ID="demo_editor_text" STYLE="width: 100%; height: 100%"></TEXTAREA></TD></TR>
-
-      </TABLE>
-
-      </BODY>
-      </HTML>
+      </script>
+      </head>
+      <body>
+          <form id="mobwrite-form" action="" method="post" accept-charset="utf-8">
+              <table border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                      <td height="1">
+                          <H1>MobWrite as a Collaborative Editor</H1>
+                          <H2>Calling remotely via JSON-P.</H2>
+                      </td>
+                  </tr>
+                  <tr>
+                      <td height="1">
+                          <input type="text" id="editor-title" placeholder="Your name" style="width:50%;">
+                      </td>
+                  </tr>
+                  <tr>
+                      <td>
+                          <textarea id="editor-text" style="width:100%; height:100%;"></textarea>
+                      </td>
+                  </tr>
+              </table>
+          </form>
+          <script>
+              mobwrite.syncGateway = location.protocol + '//' + location.host + "/__mobwrite__/";
+              mobwrite.debug = true;
+              mobwrite.share('mobwrite-form');
+          </script>
+      </body>
+      </html>
       """)
+  app.use(express.logger({format: '[:date] [:response-time] [:status] [:method] [:url]'}))
   app.use(middleware({logger: console}))
   app.listen(8000)
