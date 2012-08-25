@@ -38,7 +38,7 @@ serve = (options) ->
   # Start the Python mobwrite daemon as a child process.
   daemonProcess = spawn(
     "python"
-    ["daemon.py"]
+    ["daemon.py", MOBWRITE_PATH]
     {cwd: path.resolve(__dirname)}
     )
 
@@ -52,8 +52,11 @@ serve = (options) ->
   process.on("exit", cleanup)
   process.on("uncaughtException", cleanup)
   process.on "SIGINT", ->
-    daemonProcess.on("exit", -> process.exit())
-    process.nextTick(cleanup)
+    if daemonExited
+      process.exit()
+    else
+      daemonProcess.on("exit", -> process.exit())
+      process.nextTick(cleanup)
 
   # Propagate stdout/stderr to console, if requested.
   if logger?
@@ -64,13 +67,17 @@ serve = (options) ->
           logger?.log("#{name}: #{line}")
     daemonProcess.stdout.on("data", (d) -> log("daemon.py [out]", d))
     daemonProcess.stderr.on("data", (d) -> log("daemon.py [err]", d))
-    daemonProcess.on "exit", (exitCode, signal) ->
-      if signal and exitCode isnt null and exitCode isnt 0
-        logger?.error("daemon.py [sys] exited with code #{exitCode} due to signal #{signal}")
-      else if signal
-        logger?.error("daemon.py [sys] exited due to signal #{signal}")
-      else if exitCode isnt 0
-        logger?.error("daemon.py [sys] exited with code #{exitCode}")
+
+  # Watch for daemon exits.
+  daemonExited = false
+  daemonProcess.on "exit", (exitCode, signal) ->
+    daemonExited = true
+    if signal and exitCode isnt null and exitCode isnt 0
+      logger?.error("daemon.py [sys] exited with code #{exitCode} due to signal #{signal}")
+    else if signal
+      logger?.error("daemon.py [sys] exited due to signal #{signal}")
+    else if exitCode isnt 0
+      logger?.error("daemon.py [sys] exited with code #{exitCode}")
 
 middleware = (options) ->
 

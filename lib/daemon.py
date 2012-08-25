@@ -11,14 +11,9 @@ SocketServer.ThreadingTCPServer = ReusableThreadingTCPServer
 
 # Now that the monkeypatches are in place, adjust our import paths to point
 # at the google-mobwrite directory and import the mobwrite internals.
-MOBWRITE_PATH = os.path.normpath(os.path.join(
-    os.path.dirname(__file__) or os.getcwd(),
-    "..",
-    "ext",
-    "google-mobwrite",
-    ))
+MOBWRITE_PATH = sys.argv[1]
 sys.path.insert(0, os.path.join(MOBWRITE_PATH, "daemon"))
-sys.path.insert(0, os.path.join(MOBWRITE_PATH, "daemon", "lib"))
+sys.path.insert(0, os.path.join(MOBWRITE_PATH, "lib"))
 import mobwrite_core, mobwrite_daemon
 mobwrite_daemon.ROOT_DIR = os.path.join(MOBWRITE_PATH, "daemon") + os.path.sep
 
