@@ -9,6 +9,22 @@ MOBWRITE_PATH = path.resolve(__dirname, "..", "ext", "google-mobwrite")
 DAEMON_TIMEOUT_IN_MILLISECONDS = 10*1000
 DEFAULT_DAEMON_HOST = "localhost"
 DEFAULT_DAEMON_PORT = 3017
+DEFAULT_MIN_SYNC_INTERVAL = 250
+DEFAULT_MAX_SYNC_INTERVAL = 1250
+
+MOBWRITE_DEBUG_JAVASCRIPT = """
+    ;(function(){
+      #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/diff_match_patch_uncompressed.js"))};
+      #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/mobwrite_core.js"))};
+      #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/mobwrite_form.js"))};
+    }).call(this);
+    """
+
+MOBWRITE_MINIFIED_JAVASCRIPT = """
+    ;(function(){
+      #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/compressed_form.js"))};
+    }).call(this);
+    """
 
 serve = (options) ->
   port = options?.port or DEFAULT_DAEMON_PORT
@@ -59,14 +75,35 @@ serve = (options) ->
 middleware = (options) ->
 
   # Start the Python mobwrite daemon.
+  debug = options?.debug?
   logger = options?.logger
   daemonPort = options?.port or DEFAULT_DAEMON_PORT
   daemonHost = options?.host or DEFAULT_DAEMON_HOST
-  root = options?.root or "__mobwrite__"
+  root = options?.root or "mobwrite"
   serve({logger: logger, port: daemonPort, host: daemonHost})
 
   # Make a pattern that we can match inbound requests for mobwrite middleware.
-  rootPattern = new RegExp("#{root}/([^\/]+)")
+  rootPattern = new RegExp("#{root}/([^\\/\\?]+)")
+
+  # Set up default Javascript configs. These can always be overridden in the
+  # HTML anyway, but setting sane defaults helps.
+  clientOptions =
+    debug: debug
+    syncGateway: "/#{root}/sync"
+    syncInterval: options?.minSyncInterval or DEFAULT_MIN_SYNC_INTERVAL
+    minSyncInterval: options?.minSyncInterval or DEFAULT_MIN_SYNC_INTERVAL
+    maxSyncInterval: options?.maxSyncInterval or DEFAULT_MAX_SYNC_INTERVAL
+  clientJavascript = """
+    ;(function(){
+      #{if debug then MOBWRITE_DEBUG_JAVASCRIPT else MOBWRITE_MINIFIED_JAVASCRIPT}
+      var options = JSON.parse(#{JSON.stringify(JSON.stringify(clientOptions))})
+      for (var key in options) {
+        if (options.hasOwnProperty(key)) {
+          mobwrite[key] = options[key]
+        }
+      }
+    }).call(this);
+    """
 
   # Create a connect middleware (e.g. for use in ExpressJS).
   # TODO: verify that this works with plain http.createServer()
@@ -74,13 +111,16 @@ middleware = (options) ->
   return (req, res, next) ->
     bodyParser req, res, ->
 
-      # Respond to any requests to the sample q.py/q.php/q.jsp endpoints
-      # by grabbing the "q" or "p" parameters and interacting with the Daemon.
-      # TODO: implement as "special" URLs, and offer JS from here
-      # /__mobwrite__/sync (POST)
-      # /__mobwrite__/client.js (GET)
-      # /__mobwrite__/forms.js (GET)
-      if MOBWRITE_SAMPLE_ENDPOINT_PATTERN.test(req.url) or rootPattern.test(req.url)
+      # Respond to requests for the "mobwrite.js" file.
+      rootPath = rootPattern.exec(req.url)?[1]
+      if rootPath is "mobwrite.js"
+        res.writeHead(200, {"Content-Type": "text/javascript"})
+        res.end(clientJavascript)
+
+      # Respond to any requests to the sync endpoint (or to the typical
+      # mobwrite sample code q.py/q.php/q.jsp endpoints) by grabbing the
+      # "q" (AJAX) or "p" (JSONP) parameters and forwarding them to the Daemon.
+      else if rootPath is "sync" or MOBWRITE_SAMPLE_ENDPOINT_PATTERN.test(req.url)
         clientNeedsJsonp = req.query.p?
         daemonRequest = req.body?.q or req.query.p or "\n"
         daemonResponse = ""
@@ -152,11 +192,7 @@ if module is require.main
               font-family: sans-serif;
           }
       </style>
-      <script>
-      #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/diff_match_patch_uncompressed.js"))};
-      #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/mobwrite_core.js"))};
-      #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/mobwrite_form.js"))};
-      </script>
+      <script src="/mobwrite/mobwrite.js"></script>
       </head>
       <body>
           <form id="mobwrite-form" action="" method="post" accept-charset="utf-8">
@@ -180,11 +216,6 @@ if module is require.main
               </table>
           </form>
           <script>
-              //mobwrite.syncGateway = location.protocol + '//' + location.host + "/__mobwrite__/";
-              mobwrite.debug = true;
-              mobwrite.syncInterval = 250
-              mobwrite.minSyncInterval = 250
-              mobwrite.maxSyncInterval = 1250
               mobwrite.share('mobwrite-form');
           </script>
       </body>
