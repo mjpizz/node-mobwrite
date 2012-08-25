@@ -9,6 +9,5 @@
       "coffee-script": "*",
       "connect": "*"
     },
-    "main": "./mobwrite",
-    "private": true
+    "main": "./mobwrite"
 }
