@@ -5,6 +5,6 @@
       "coffee-script": "*",
       "connect": "*"
     },
-    "main": "./lib/index"
+    "main": "./mobwrite",
     "private": true
 }

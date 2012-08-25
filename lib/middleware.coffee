@@ -168,59 +168,8 @@ middleware = (options) ->
           res.writeHead(500)
           res.end(err.toString())
 
-module.exports = middleware
+      # Otherwise, we pass control to the next piece of middleware.
+      else
+        next()
 
-if module is require.main
-  express = require("express")
-  app = express()
-  app.get "/editor", (req, res) ->
-    res.send("""
-      <html>
-      <head>
-      <title>MobWrite as a Collaborative Editor (Remote)</title>
-      <style type="text/css">
-          body {
-            background-color: white;
-            font-family: sans-serif;
-          }
-          h1, h2, h3 { font-weight: normal; }
-          table{ width:100%; height:100%; }
-          input{ width:50%; }
-          textarea {
-              width:100%;
-              height:100%;
-              font-family: sans-serif;
-          }
-      </style>
-      <script src="/mobwrite/mobwrite.js"></script>
-      </head>
-      <body>
-          <form id="mobwrite-form" action="" method="post" accept-charset="utf-8">
-              <table border="0" cellspacing="0" cellpadding="0">
-                  <tr>
-                      <td height="1">
-                          <H1>MobWrite as a Collaborative Editor</H1>
-                          <H2>Calling remotely via JSON-P.</H2>
-                      </td>
-                  </tr>
-                  <tr>
-                      <td height="1">
-                          <input type="text" id="editor-title" placeholder="Your name" style="width:50%;">
-                      </td>
-                  </tr>
-                  <tr>
-                      <td>
-                          <textarea id="editor-text" style="width:100%; height:100%;"></textarea>
-                      </td>
-                  </tr>
-              </table>
-          </form>
-          <script>
-              mobwrite.share('mobwrite-form');
-          </script>
-      </body>
-      </html>
-      """)
-  app.use(express.logger({format: '[:date] [:response-time] [:status] [:method] [:url]'}))
-  app.use(middleware({logger: console}))
-  app.listen(8000)
+module.exports = middleware

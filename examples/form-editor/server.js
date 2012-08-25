@@ -1,0 +1,7 @@
+var mobwrite = require("../../lib")
+var connect = require("connect")
+var app = connect()
+app.use(connect.static(__dirname))
+app.use(connect.query())
+app.use(mobwrite({logger: console}))
+app.listen(8000)

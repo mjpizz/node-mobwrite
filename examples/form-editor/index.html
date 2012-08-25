@@ -1,0 +1,26 @@
+<html>
+<head>
+  <title>[node-mobwrite] Form Editor Example</title>
+  <style type="text/css">
+    input {
+      width: 100%;
+      font-family: monospace;
+    }
+    textarea {
+      width: 100%;
+      height: 500px;
+      font-family: monospace;
+    }
+  </style>
+  <script src="/mobwrite/mobwrite.js"></script>
+</head>
+<body>
+  <form id="my-form" action="" method="post" accept-charset="utf-8">
+    <input type="text" id="my-title" placeholder="Write something in here" style="width:50%;">
+    <textarea id="my-notes"></textarea>
+  </form>
+  <script>
+    mobwrite.share("my-form")
+  </script>
+</body>
+</html>
