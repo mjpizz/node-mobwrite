@@ -182,6 +182,9 @@ if module is require.main
           <script>
               //mobwrite.syncGateway = location.protocol + '//' + location.host + "/__mobwrite__/";
               mobwrite.debug = true;
+              mobwrite.syncInterval = 250
+              mobwrite.minSyncInterval = 250
+              mobwrite.maxSyncInterval = 1250
               mobwrite.share('mobwrite-form');
           </script>
       </body>
