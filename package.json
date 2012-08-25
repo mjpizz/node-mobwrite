@@ -1,0 +1,9 @@
+{
+    "name": "mobwrite",
+    "version": "0.0.1",
+    "dependencies": {
+      "coffee-script": "*",
+      "connect": "*"
+    },
+    "private": true
+}

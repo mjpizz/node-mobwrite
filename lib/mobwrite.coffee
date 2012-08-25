@@ -2,7 +2,7 @@ fs = require("fs")
 net = require("net")
 path = require("path")
 spawn = require("child_process").spawn
-express = require("express")
+connect = require("connect")
 
 MOBWRITE_SAMPLE_ENDPOINT_PATTERN = /\/scripts\/q.(py|php|jsp)/
 MOBWRITE_PATH = path.resolve(__dirname, "..", "ext", "google-mobwrite")
@@ -65,7 +65,7 @@ middleware = (options) ->
   serve({logger: logger, port: daemonPort, host: daemonHost})
 
   # Create a connect middleware (e.g. for use in ExpressJS).
-  bodyParser = express.bodyParser()
+  bodyParser = connect.bodyParser()
   return (req, res, next) ->
 
     # Parse the POST body and bail out if there was no data in there.
@@ -116,7 +116,7 @@ middleware = (options) ->
 module.exports = middleware
 
 if module is require.main
-  app = express()
+  app = require("express")()
   app.get "/editor", (req, res) ->
     res.send("""
       <HTML>
