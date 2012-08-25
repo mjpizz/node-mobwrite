@@ -22,3 +22,8 @@ If [google-mobwrite](https://code.google.com/p/google-mobwrite/) changes, you ca
 
     rm -rf ext/google-mobwrite
     svn export http://google-mobwrite.googlecode.com/svn/trunk ext/google-mobwrite
+
+# Wishlist
+
+* socket.io gateway (cleaner, less polling)
+* configuration handling for mobwrite daemon (right now it uses baked-in configs)
