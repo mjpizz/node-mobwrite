@@ -118,9 +118,9 @@ middleware = (options) ->
   return (req, res, next) ->
     bodyParser req, res, ->
 
-      # Respond to requests for the "mobwrite.js" file.
+      # Respond to requests for the "mobwrite-client.js" file.
       rootPath = rootPattern.exec(req.url)?[1]
-      if rootPath is "mobwrite.js"
+      if rootPath is "mobwrite-client.js"
         res.writeHead(200, {"Content-Type": "text/javascript"})
         res.end(clientJavascript)
 
