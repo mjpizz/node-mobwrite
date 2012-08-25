@@ -99,12 +99,21 @@ middleware = (options) ->
 
         daemonSocket.on "end", ->
           logger?.log(">>> socket finished reading from daemon")
+
+          # JSONP responses need to be serialized onto a single line and
+          # sent to the global mobwrite.callback() function.
+          # TODO: allow this callback to be customized with JS monkeypatching?
           if clientNeedsJsonp
             daemonResponse = daemonResponse.replace(new RegExp("\\\\", "g"), "\\\\")
             daemonResponse = daemonResponse.replace(new RegExp("\\\"", "g"), "\\\"")
             daemonResponse = daemonResponse.replace(new RegExp("\\n", "g"), "\\n")
             daemonResponse = daemonResponse.replace(new RegExp("\\r", "g"), "\\r")
             daemonResponse = "mobwrite.callback(\"#{daemonResponse}\");"
+
+          # AJAX responses need an extra newline at the end.
+          else
+            daemonResponse += "\n"
+
           console.warn(">> sending to client\n---\n#{daemonResponse}\n---")
           res.writeHead(200, {"Content-Type": "text/javascript"})
           res.end(daemonResponse)
@@ -171,7 +180,7 @@ if module is require.main
               </table>
           </form>
           <script>
-              mobwrite.syncGateway = location.protocol + '//' + location.host + "/__mobwrite__/";
+              //mobwrite.syncGateway = location.protocol + '//' + location.host + "/__mobwrite__/";
               mobwrite.debug = true;
               mobwrite.share('mobwrite-form');
           </script>
