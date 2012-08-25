@@ -1,6 +1,10 @@
 {
     "name": "mobwrite",
+    "description": "node port of google-mobwrite",
     "version": "0.0.1",
+    "author": "Matt Pizzimenti",
+    "email": "mjpizz@gmail.com",
+    "url": "https://github.com/mjpizz/node-mobwrite",
     "dependencies": {
       "coffee-script": "*",
       "connect": "*"

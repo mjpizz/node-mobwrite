@@ -1,5 +1,6 @@
 # node-mobwrite
-node package of [mobwrite](http://code.google.com/p/google-mobwrite/)
+This is a node port of [google-mobwrite](http://code.google.com/p/google-mobwrite/),
+which enables live collaborative editing of text (e.g. in forms).
 
 # Getting Started
 
