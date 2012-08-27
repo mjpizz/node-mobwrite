@@ -12,7 +12,8 @@ DEFAULT_DAEMON_PORT = 3017
 DEFAULT_MIN_SYNC_INTERVAL = 250
 DEFAULT_MAX_SYNC_INTERVAL = 1250
 
-MOBWRITE_DEBUG_JAVASCRIPT = """
+getMobwriteDebugJavascript = ->
+  return """
     ;(function(){
       #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/diff_match_patch_uncompressed.js"))};
       #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/mobwrite_core.js"))};
@@ -20,7 +21,8 @@ MOBWRITE_DEBUG_JAVASCRIPT = """
     }).call(this);
     """
 
-MOBWRITE_MINIFIED_JAVASCRIPT = """
+getMobwriteMinifiedJavascript = ->
+  return """
     ;(function(){
       #{fs.readFileSync(path.resolve(MOBWRITE_PATH, "html/compressed_form.js"))};
     }).call(this);
@@ -82,7 +84,8 @@ serve = (options) ->
 middleware = (options) ->
 
   # Start the Python mobwrite daemon.
-  debug = options?.debug?
+  debug = options?.debug is true
+  cache = options?.cache is true
   logger = options?.logger
   daemonPort = options?.port or DEFAULT_DAEMON_PORT
   daemonHost = options?.host or DEFAULT_DAEMON_HOST
@@ -100,17 +103,19 @@ middleware = (options) ->
     syncInterval: options?.minSyncInterval or DEFAULT_MIN_SYNC_INTERVAL
     minSyncInterval: options?.minSyncInterval or DEFAULT_MIN_SYNC_INTERVAL
     maxSyncInterval: options?.maxSyncInterval or DEFAULT_MAX_SYNC_INTERVAL
-  clientJavascript = """
-    ;(function(){
-      #{if debug then MOBWRITE_DEBUG_JAVASCRIPT else MOBWRITE_MINIFIED_JAVASCRIPT}
-      var options = JSON.parse(#{JSON.stringify(JSON.stringify(clientOptions))})
-      for (var key in options) {
-        if (options.hasOwnProperty(key)) {
-          mobwrite[key] = options[key]
+  getClientJavascript = ->
+    return """
+      ;(function(){
+        #{if debug then getMobwriteDebugJavascript() else getMobwriteMinifiedJavascript()}
+        var options = JSON.parse(#{JSON.stringify(JSON.stringify(clientOptions))})
+        for (var key in options) {
+          if (options.hasOwnProperty(key)) {
+            mobwrite[key] = options[key]
+          }
         }
-      }
-    }).call(this);
-    """
+      }).call(this);
+      """
+  clientJavascriptCache = getClientJavascript()
 
   # Create a connect middleware (e.g. for use in ExpressJS).
   # TODO: verify that this works with plain http.createServer()
@@ -122,7 +127,7 @@ middleware = (options) ->
       rootPath = rootPattern.exec(req.url)?[1]
       if rootPath is "mobwrite-client.js"
         res.writeHead(200, {"Content-Type": "text/javascript"})
-        res.end(clientJavascript)
+        res.end(if cache then clientJavascriptCache else getClientJavascript())
 
       # Respond to any requests to the sync endpoint (or to the typical
       # mobwrite sample code q.py/q.php/q.jsp endpoints) by grabbing the
