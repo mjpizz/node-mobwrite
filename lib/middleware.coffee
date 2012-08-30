@@ -2,6 +2,7 @@ fs = require("fs")
 net = require("net")
 path = require("path")
 spawn = require("child_process").spawn
+EventEmitter = require("events").EventEmitter
 xmlrpc = require("xmlrpc")
 connect = require("connect")
 
@@ -98,6 +99,11 @@ serve = (options) ->
     else if exitCode isnt 0
       logger?.error("daemon.py [sys] exited with code #{exitCode}")
 
+  # # Return an object representing this daemon process.
+  return daemon =
+    getDocument: (filename, callback) ->
+      callback(null, "TextObj content retrieval not implemented yet")
+
 middleware = (options) ->
 
   # Start the Python mobwrite daemon.
@@ -107,7 +113,7 @@ middleware = (options) ->
   daemonPort = options?.port or DEFAULT_DAEMON_PORT
   daemonHost = options?.host or DEFAULT_DAEMON_HOST
   root = options?.root or "mobwrite"
-  serve
+  daemon = serve
     logger: logger
     port: daemonPort
     host: daemonHost
@@ -138,10 +144,13 @@ middleware = (options) ->
       """
   clientJavascriptCache = getClientJavascript()
 
+  # Create an event emitter for events like "document:change".
+  emitter = new EventEmitter()
+
   # Create a connect middleware (e.g. for use in ExpressJS).
   # TODO: verify that this works with plain http.createServer()
   bodyParser = connect.bodyParser()
-  return (req, res, next) ->
+  mobwriteMiddleware = (req, res, next) ->
     bodyParser req, res, ->
 
       # Respond to requests for the "mobwrite-client.js" file.
@@ -157,6 +166,21 @@ middleware = (options) ->
         clientNeedsJsonp = req.query.p?
         daemonRequest = req.body?.q or req.query.p or "\n"
         daemonResponse = ""
+
+        # Parse out the filename for this request.
+        filenameMatches = /^F\:\d+\:([^\n]+)$/m.exec(daemonRequest)
+        unless filenameMatches
+          logger.warn("missing filename in patch request:", daemonRequest)
+          res.writeHead(500)
+          res.end("missing filename in patch request")
+          return
+        filename = filenameMatches[1]
+
+        # Parse out the patch content for this request.
+        patchContentMatches = /^d\:\d+\:\=\d+\s*([^\d][^\n]+)$/m.exec(daemonRequest)
+        if patchContentMatches and patchContentMatches[1].length > 0
+          console.log daemonRequest
+          emitter.emit("document:change", filename)
 
         # Open a socket to the daemon.
         daemonSocket = net.createConnection(daemonPort, daemonHost)
@@ -204,5 +228,10 @@ middleware = (options) ->
       # Otherwise, we pass control to the next piece of middleware.
       else
         next()
+
+  # Add some helper methods to the middleware object before returning it.
+  mobwriteMiddleware.getDocument = -> daemon.getDocument.apply(daemon, arguments)
+  mobwriteMiddleware.on = -> emitter.on.apply(emitter, arguments)
+  return mobwriteMiddleware
 
 module.exports = middleware
