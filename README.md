@@ -8,7 +8,7 @@ which enables live collaborative editing of text (e.g. in forms).
     * node 0.6+
     * Python 2.5+
 2. Install via npm: `npm install mobwrite`
-3. Start up a demo server: `node -e "require('mobwrite').quickserve()`
+3. Start up a demo server: `node node_modules/mobwrite/examples/form-editor/server.js`
 4. Visit [http://localhost:8000](http://localhost:8000) in two browser windows
 5. Type text in one browser window, and see it show up in the other window :)
 
