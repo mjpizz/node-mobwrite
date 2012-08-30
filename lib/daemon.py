@@ -17,6 +17,25 @@ sys.path.insert(0, os.path.join(MOBWRITE_PATH, "lib"))
 import mobwrite_core, mobwrite_daemon
 mobwrite_daemon.ROOT_DIR = os.path.join(MOBWRITE_PATH, "daemon") + os.path.sep
 
+# If the parent process gave us a document loader, connect to
+# it over XMLRPC.
+# TODO: consider JSON-formatted shared memory or memcached
+if len(sys.argv) == 3 and sys.argv[2]:
+    print sys.argv[2]
+    import xmlrpclib
+    class NodeMobwriteTextObj(mobwrite_daemon.TextObj):
+        server_proxy = xmlrpclib.ServerProxy(sys.argv[2])
+        def load(self):
+            try:
+                mobwrite_core.LOG.info("loading document: %s" % self.name)
+                text = self.server_proxy.loadDocument(self.name)
+                self.setText(text.decode("utf-8"))
+                self.changed = False
+            except:
+                mobwrite_core.LOG.critical("failed to load document: %s" % self.name, exc_info=True)
+    mobwrite_daemon.TextObj = NodeMobwriteTextObj
+
+# Run the daemon.
 if __name__ == "__main__":
     mobwrite_core.logging.basicConfig()
     mobwrite_daemon.main()

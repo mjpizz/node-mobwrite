@@ -1,0 +1,25 @@
+<html>
+<head>
+  <title>[node-mobwrite] Custom Loading Example</title>
+  <style type="text/css">
+    input {
+      width: 100%;
+      font-family: monospace;
+    }
+    textarea {
+      width: 100%;
+      height: 500px;
+      font-family: monospace;
+    }
+  </style>
+  <script src="/mobwrite/mobwrite-client.js"></script>
+</head>
+<body>
+  <form id="my-form" action="" method="post" accept-charset="utf-8">
+    <textarea id="my-notes"></textarea>
+  </form>
+  <script>
+    mobwrite.share("my-form")
+  </script>
+</body>
+</html>

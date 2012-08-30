@@ -7,7 +7,8 @@
     "url": "https://github.com/mjpizz/node-mobwrite",
     "dependencies": {
       "coffee-script": "*",
-      "connect": "*"
+      "connect": "*",
+      "xmlrpc": "*"
     },
     "main": "./mobwrite"
 }

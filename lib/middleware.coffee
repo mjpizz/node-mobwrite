@@ -2,6 +2,7 @@ fs = require("fs")
 net = require("net")
 path = require("path")
 spawn = require("child_process").spawn
+xmlrpc = require("xmlrpc")
 connect = require("connect")
 
 MOBWRITE_SAMPLE_ENDPOINT_PATTERN = /\/scripts\/q.(py|php|jsp)/
@@ -9,6 +10,8 @@ MOBWRITE_PATH = path.resolve(__dirname, "..", "ext", "google-mobwrite")
 DAEMON_TIMEOUT_IN_MILLISECONDS = 10*1000
 DEFAULT_DAEMON_HOST = "localhost"
 DEFAULT_DAEMON_PORT = 3017
+DEFAULT_XMLRPC_SERVER_HOST = "localhost"
+DEFAULT_XMLRPC_SERVER_PORT = 3018
 DEFAULT_MIN_SYNC_INTERVAL = 250
 DEFAULT_MAX_SYNC_INTERVAL = 1250
 
@@ -31,16 +34,30 @@ getMobwriteMinifiedJavascript = ->
 serve = (options) ->
   port = options?.port or DEFAULT_DAEMON_PORT
   logger = options?.logger
+  loadDocument = options?.loadDocument
 
   # Notify the user if they are trying to customize port (will be supported
   # in the future, just needs modifications in daemon.py).
   if port and port isnt DEFAULT_DAEMON_PORT
     throw new Error("overriding daemon port is not supported yet")
 
+  # Serve out our loadDocument() callback over XMLRPC.
+  if loadDocument
+    logger.info("using custom document loader.")
+    xmlrpcServer = xmlrpc.createServer
+      host: DEFAULT_XMLRPC_SERVER_HOST
+      port: DEFAULT_XMLRPC_SERVER_PORT
+    xmlrpcServer.on "loadDocument", (err, params, callback) ->
+      filename = params[0]
+      loadDocument(filename, callback)
+    xmlrpcServerUri = "http://#{DEFAULT_XMLRPC_SERVER_HOST}:#{DEFAULT_XMLRPC_SERVER_PORT}"
+  else
+    xmlrpcServerUri = ""
+
   # Start the Python mobwrite daemon as a child process.
   daemonProcess = spawn(
     "python"
-    ["daemon.py", MOBWRITE_PATH]
+    ["daemon.py", MOBWRITE_PATH, xmlrpcServerUri]
     {cwd: path.resolve(__dirname)}
     )
 
@@ -90,7 +107,11 @@ middleware = (options) ->
   daemonPort = options?.port or DEFAULT_DAEMON_PORT
   daemonHost = options?.host or DEFAULT_DAEMON_HOST
   root = options?.root or "mobwrite"
-  serve({logger: logger, port: daemonPort, host: daemonHost})
+  serve
+    logger: logger
+    port: daemonPort
+    host: daemonHost
+    loadDocument: options?.loadDocument
 
   # Make a pattern that we can match inbound requests for mobwrite middleware.
   rootPattern = new RegExp("#{root}/([^\\/\\?]+)")
