@@ -101,7 +101,7 @@ serve = (options) ->
 
   # # Return an object representing this daemon process.
   return daemon =
-    getDocument: (filename, callback) ->
+    readDocument: (filename, callback) ->
       callback(null, "TextObj content retrieval not implemented yet")
 
 middleware = (options) ->
@@ -230,7 +230,7 @@ middleware = (options) ->
         next()
 
   # Add some helper methods to the middleware object before returning it.
-  mobwriteMiddleware.getDocument = -> daemon.getDocument.apply(daemon, arguments)
+  mobwriteMiddleware.readDocument = -> daemon.readDocument.apply(daemon, arguments)
   mobwriteMiddleware.on = -> emitter.on.apply(emitter, arguments)
   return mobwriteMiddleware
 
