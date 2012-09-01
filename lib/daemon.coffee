@@ -41,7 +41,7 @@ class Daemon
 
   # Daemon implementation.
   constructor: (options) ->
-    logger = options.logger
+    logger = options.logger or {}
 
     # Parse configuration options for the Python child process.
     port = options.port or DEFAULT_DAEMON_PORT
@@ -65,7 +65,7 @@ class Daemon
       xmlrpcPort = options.xmlrpcPort or DEFAULT_XMLRPC_DOC_LOADER_PORT
       xmlrpcHost = options.xmlrpcHost or DEFAULT_XMLRPC_DOC_LOADER_HOST
       xmlrpcUri = serveXmlrpcDocumentLoader(xmlrpcPort, xmlrpcHost, loadDocument)
-      logger?.info("[daemon-client] using XMLRPC document loader @ #{xmlrpcUri}")
+      logger.info?("[daemon-client] using XMLRPC document loader @ #{xmlrpcUri}")
       daemonOptions.xmlrpcDocumentLoader = {uri: xmlrpcUri}
 
     # Create an event emitter for events like "document:change".
@@ -87,7 +87,7 @@ class Daemon
           daemonProcess.kill()
       cleanupAndExit = (err) ->
         if err
-          logger?.error("[daemon-system] exiting due to error:", err)
+          logger.error?("[daemon-system] exiting due to error:", err)
         if daemonExited
           process.exit()
         else
@@ -104,7 +104,12 @@ class Daemon
           lines = data.toString().split("\n")
           for line in lines
             unless /^\s*$/.test(line)
-              logger?.info("#{prefix} #{line}")
+              if /ERROR/.test(line)
+                logger.error?("#{prefix} #{line}")
+              else if /WARNING/.test(line)
+                logger.warn?("#{prefix} #{line}")
+              else
+                logger.info?("#{prefix} #{line}")
         daemonProcess.stdout.on("data", (d) -> log("[daemon-stdout]", d))
         daemonProcess.stderr.on("data", (d) -> log("[daemon-stderr]", d))
 
@@ -114,11 +119,11 @@ class Daemon
       daemonProcess.on "exit", (exitCode, signal) ->
         daemonExited = true
         if signal and exitCode isnt null and exitCode isnt 0
-          logger?.error("[daemon-system] exited with code #{exitCode} due to signal #{signal}")
+          logger.error?("[daemon-system] exited with code #{exitCode} due to signal #{signal}")
         else if signal
-          logger?.error("[daemon-system] exited due to signal #{signal}")
+          logger.error?("[daemon-system] exited due to signal #{signal}")
         else if exitCode isnt 0
-          logger?.error("[daemon-system] exited with code #{exitCode}")
+          logger.error?("[daemon-system] exited with code #{exitCode}")
 
     # Define a helper that issues a raw request to the daemon and returns
     # the raw response from the daemon.  If there are any errors, it gives
@@ -131,7 +136,7 @@ class Daemon
       # Parse out the filename for this request.
       filenameMatches = /^F\:\d+\:([^\n]+)$/m.exec(daemonRequest)
       unless filenameMatches
-        logger?.warn("missing filename in patch request:", daemonRequest)
+        logger.warn?("missing filename in patch request:", daemonRequest)
         return
       filename = filenameMatches[1]
 
@@ -140,17 +145,17 @@ class Daemon
 
       # Listen for all the stages of the socket request.
       daemonSocket.on "connect", ->
-        logger?.info("[daemon-client] socket connected, sending request:\n#{daemonRequest}")
+        logger.info?("[daemon-client] socket connected, sending request:\n#{daemonRequest}")
         daemonSocket.write(daemonRequest)
 
       rawResponse = ""
       daemonSocket.on "data", (data) ->
-        logger?.info("[daemon-client] socket received #{data.length} bytes")
+        logger.info?("[daemon-client] socket received #{data.length} bytes")
         rawResponse += data
 
       daemonSocket.on "end", ->
         rawResponse += "\n"
-        logger?.info("[daemon-client] socket finished receiving:\n#{rawResponse}")
+        logger.info?("[daemon-client] socket finished receiving:\n#{rawResponse}")
         callback(null, rawResponse)
 
         # If this patch actually made changes to the document, emit an event
@@ -159,11 +164,11 @@ class Daemon
           emitter.emit("document:change", filename)
 
       daemonSocket.on "timeout", (err) ->
-        logger?.error("[daemon-client] socket timed out:", err)
+        logger.error?("[daemon-client] socket timed out:", err)
         callback(err)
 
       daemonSocket.on "error", (err) ->
-        logger?.error("[daemon-client] socket errored out:", err)
+        logger.error?("[daemon-client] socket errored out:", err)
         callback(err)
 
     # Define a helper for creating mobwrite protocol requests.

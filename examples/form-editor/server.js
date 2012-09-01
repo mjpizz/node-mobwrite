@@ -6,7 +6,7 @@ var http = require("http")
 var mobwrite = require("../../mobwrite")
 
 // Start a basic HTTP server using the mobwrite middleware.
-var mob = mobwrite()
+var mob = mobwrite({logger: {error: console.error}})
 var server = http.createServer(function(req, res) {
   mob(req, res, function next() {
     res.end(fs.readFileSync(path.resolve(__dirname, "index.html")).toString())

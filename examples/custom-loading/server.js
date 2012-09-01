@@ -6,6 +6,7 @@ var http = require("http")
 var mobwrite = require("../../mobwrite")
 
 mob = mobwrite({
+  logger: {error: console.error},
 
   // Set a custom document loader.  This example just uses a hardcoded sentence,
   // but you can imagine reading it out of a database too.
