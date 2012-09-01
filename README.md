@@ -155,8 +155,8 @@ var mob = mobwrite()
 mob.on("document:change", function(filename) {
 
   // Save the document to your database.
-  mob.readDocument(filename, function(data) {
-    mydatabase.saveDoc(filename, data)
+  mob.readDocument(filename, function(err, data) {
+    mydatabase.saveDoc(filename, data.toString())
   })
 
 })
