@@ -44,7 +44,7 @@ serve = (options) ->
 
   # Serve out our loadDocument() callback over XMLRPC.
   if loadDocument
-    logger.info("using custom document loader.")
+    logger?.info("using custom document loader.")
     xmlrpcServer = xmlrpc.createServer
       host: DEFAULT_XMLRPC_SERVER_HOST
       port: DEFAULT_XMLRPC_SERVER_PORT
@@ -170,7 +170,7 @@ middleware = (options) ->
         # Parse out the filename for this request.
         filenameMatches = /^F\:\d+\:([^\n]+)$/m.exec(daemonRequest)
         unless filenameMatches
-          logger.warn("missing filename in patch request:", daemonRequest)
+          logger?.warn("missing filename in patch request:", daemonRequest)
           res.writeHead(500)
           res.end("missing filename in patch request")
           return
