@@ -108,7 +108,7 @@ middleware = (options) ->
 
   # Start the Python mobwrite daemon.
   debug = options?.debug is true
-  cache = options?.cache is true
+  cache = if options?.cache is false then false else true
   logger = options?.logger
   daemonPort = options?.port or DEFAULT_DAEMON_PORT
   daemonHost = options?.host or DEFAULT_DAEMON_HOST
