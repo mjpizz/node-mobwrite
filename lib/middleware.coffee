@@ -177,9 +177,9 @@ middleware = (options) ->
         filename = filenameMatches[1]
 
         # Parse out the patch content for this request.
+        # http://code.google.com/p/google-mobwrite/wiki/Protocol
         patchContentMatches = /^d\:\d+\:\=\d+\s*([^\d][^\n]+)$/m.exec(daemonRequest)
         if patchContentMatches and patchContentMatches[1].length > 0
-          console.log daemonRequest
           emitter.emit("document:change", filename)
 
         # Open a socket to the daemon.
@@ -211,7 +211,7 @@ middleware = (options) ->
           else
             daemonResponse += "\n"
 
-          console.warn(">> sending to client\n---\n#{daemonResponse}\n---")
+          logger?.warn(">> sending to client\n---\n#{daemonResponse}\n---")
           res.writeHead(200, {"Content-Type": "text/javascript"})
           res.end(daemonResponse)
 
