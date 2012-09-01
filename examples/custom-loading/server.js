@@ -25,11 +25,11 @@ mob = mobwrite({
 // to decide when it's time to auto-save the document back to your database.
 mob.on("document:change", function(filename) {
   console.log("document changed:", filename)
-  mob.readDocument(filename, function(err, text) {
+  mob.readDocument(filename, function(err, data) {
     if (err) {
       console.error("failed to get document contents for", filename, "due to", err)
     } else {
-      console.log("new document contents for", filename, "=", text)
+      console.log("new document contents for", filename, "=", data.toString())
     }
   })
 })

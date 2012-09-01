@@ -166,11 +166,70 @@ class Daemon
         logger?.error("[daemon-client] socket errored out:", err)
         callback(err)
 
+    # Define a helper for creating mobwrite protocol requests.
+    # http://code.google.com/p/google-mobwrite/wiki/Protocol
+    sendRequest = (attributes, callback) ->
+
+      # Convert the dictionary of attributes into a protocol-compatible
+      # ordering of those keys.
+      argumentKeyOrdering = "UFDRNMB"
+      daemonRequest = ""
+      for own key in argumentKeyOrdering
+        if attributes[key]?
+          daemonRequest += "#{key}:#{attributes[key]}\n"
+        lowerKey = key.toLowerCase()
+        if attributes[lowerKey]?
+          daemonRequest += "#{lowerKey}:#{attributes[lowerKey]}\n"
+      daemonRequest += "\n"
+
+      # Send the raw daemon request, and parse the response before
+      # sending it back to the callback.
+      sendRawRequest daemonRequest, (err, rawResponse) ->
+        if err
+          callback(err)
+        else
+          try
+            lines = rawResponse.split("\n")
+            attributes = {}
+            for line in lines
+              if line.length > 0
+                pieces = line.split(":")
+                key = pieces[0]
+                version = pieces[1]
+                data = pieces[2]
+                attributes[pieces[0]] = pieces[2]
+            callback(null, attributes)
+          catch err
+            callback(err)
+
     # Define a helper that can read the current contents of a document
     # from the mobwrite Python daemon.
+    # NOTE: Since the Python daemon creates a new ViewObj for every username
+    # that connects to a TextObj, make sure to always use a unique username
+    # for reading these documents.  This will create at most one extra
+    # ViewObj per TextObj.
+    documentReaderUsername = "__NodeMobwriteDocumentReader#{Math.random().toString().slice(2)}"
     readDocument = (filename, callback) ->
-      callback(null, "not implemented yet")
+      sendRequest
+        u: documentReaderUsername
+        F: "0:#{filename}"
+        r: "1:"
+      , (err, res) ->
+        if err
+          callback(err)
 
+        # The document contents come back as something like this:
+        #
+        # +A bunch of text content%0A1234"
+        #
+        # Slice off the leading "+" diff character and unescape the
+        # URL encoding as well.  Since this method should behave like
+        # `fs.readFile`, return the final contents as a Buffer object.
+        else
+          contents = new Buffer(unescape(res.d.slice(1)))
+          callback(null, contents)
+
+    # We have configured everything and defined all of our helpers, start it up.
     startPythonDaemon()
     @priv =
       sendRawRequest: sendRawRequest
