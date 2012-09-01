@@ -1,4 +1,9 @@
-import os, sys
+import os, sys, json
+
+# Parse daemon options from the node process that spawned this Python script.
+daemon_options = json.loads(sys.argv[1])
+MOBWRITE_PATH = daemon_options['mobwritePath']
+XMLRPC_DOC_LOADER = daemon_options.get('xmlrpcDocumentLoader', None)
 
 # Monkeypatch ThreadingTCPServer to allow mobwrite to be killed and restarted
 # without waiting a long time for the socket to be released for reuse.
@@ -11,7 +16,6 @@ SocketServer.ThreadingTCPServer = ReusableThreadingTCPServer
 
 # Now that the monkeypatches are in place, adjust our import paths to point
 # at the google-mobwrite directory and import the mobwrite internals.
-MOBWRITE_PATH = sys.argv[1]
 sys.path.insert(0, os.path.join(MOBWRITE_PATH, "daemon"))
 sys.path.insert(0, os.path.join(MOBWRITE_PATH, "lib"))
 import mobwrite_core, mobwrite_daemon
@@ -20,11 +24,10 @@ mobwrite_daemon.ROOT_DIR = os.path.join(MOBWRITE_PATH, "daemon") + os.path.sep
 # If the parent process gave us a document loader, connect to
 # it over XMLRPC.
 # TODO: consider JSON-formatted shared memory or memcached
-if len(sys.argv) == 3 and sys.argv[2]:
-    print sys.argv[2]
+if XMLRPC_DOC_LOADER:
     import xmlrpclib
     class NodeMobwriteTextObj(mobwrite_daemon.TextObj):
-        server_proxy = xmlrpclib.ServerProxy(sys.argv[2])
+        server_proxy = xmlrpclib.ServerProxy(XMLRPC_DOC_LOADER['uri'])
         def load(self):
             try:
                 mobwrite_core.LOG.info("loading document: %s" % self.name)
