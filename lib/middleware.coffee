@@ -147,11 +147,22 @@ middleware = (options) ->
   # Create an event emitter for events like "document:change".
   emitter = new EventEmitter()
 
-  # Create a connect middleware (e.g. for use in ExpressJS).
-  # TODO: verify that this works with plain http.createServer()
+  # Leverage connect() middleware to parse POST bodies and querystrings.
   bodyParser = connect.bodyParser()
+  queryParser = connect.query()
+  prepareRequest = (req, res, next) ->
+    if req.body and req.query
+      next()
+    else if req.body
+      queryParser(req, res, next)
+    else if req.query
+      bodyParser(req, res, next)
+    else
+      bodyParser(req, res, -> queryParser(req, res, next))
+
+  # Create a connect middleware (e.g. for use in ExpressJS).
   mobwriteMiddleware = (req, res, next) ->
-    bodyParser req, res, ->
+    prepareRequest req, res, ->
 
       # Respond to requests for the "mobwrite-client.js" file.
       rootPath = rootPattern.exec(req.url)?[1]
