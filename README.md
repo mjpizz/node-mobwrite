@@ -15,8 +15,7 @@ which enables live collaborative editing of text (e.g. in forms).
 
 # Building Your Own App
 
-You can use mobwrite with any standard node HTTP server.  To start, create
-a demo page like `demo.html`:
+To start, create a demo page like `demo.html`:
 
 ```html
 <html>
@@ -48,7 +47,7 @@ You have a couple options:
 You can also take a look at the [examples](https://github.com/mjpizz/node-mobwrite/tree/master/examples)
 for more ideas.
 
-## Option 1: mobwrite + express web framework
+### Option 1: mobwrite + express web framework
 
 If you are using [express](http://expressjs.com/) as your webserver, you can
 easily `use()` mobwrite functionality as middleware.
@@ -72,10 +71,13 @@ app.listen(8000)
 console.log("visit http://localhost:8000/demo.html in your browser")
 ```
 
-Then, start the server from the commandline: `node app.js`.  You can visit
-your demo at [http://localhost:8000/demo.html](http://localhost:8000/demo.html).
+Then, start the server from the commandline:
 
-## Option 2: mobwrite + builtin node HTTP server
+    node app.js
+
+You can visit your demo at [http://localhost:8000/demo.html](http://localhost:8000/demo.html).
+
+### Option 2: mobwrite + builtin node HTTP server
 
 Create an `app.js` in the same directory as your `demo.html`:
 
@@ -96,8 +98,11 @@ server.listen(8000)
 console.log("visit http://localhost:8000/demo.html in your browser")
 ```
 
-Then, start the server from the commandline: `node app.js`.  You can visit
-your demo at [http://localhost:8000/demo.html](http://localhost:8000/demo.html).
+Then, start the server from the commandline:
+
+    node app.js
+
+You can visit your demo at [http://localhost:8000/demo.html](http://localhost:8000/demo.html).
 
 # Using Advanced Features
 
@@ -108,7 +113,7 @@ of mobwrite:
 var mobwrite = require("mobwrite")
 var mob = mobwrite({
 
-  // View logs on the console.
+  // View server logs in your terminal.
   logger: console,
 
   // Show debug logs in the browser, and use an uncompressed copy of Javascript.
@@ -129,8 +134,12 @@ var mob = mobwrite({
 })
 ```
 
-You can also keep up-to-date on the current contents of a document.
-Use the `readDocument()` method and `on("document:change", ...)` event handler:
+You can also keep up-to-date on the current contents of a document:
+
+* `on("document:change", callback)` triggers when a document changes inside of mobwrite
+* `readDocument(callback)` reads the document from mobwrite
+
+For example, you could set up auto-saving to your database:
 
 ```javascript
 var mobwrite = require("mobwrite")
@@ -140,7 +149,7 @@ var mob = mobwrite()
 // to a document in mobwrite.
 mob.on("document:change", function(filename) {
 
-  // You could auto-save the document to your database here.
+  // Save the document to your database.
   mob.readDocument(filename, function(data) {
     mydatabase.saveDoc(filename, data)
   })
