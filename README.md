@@ -120,6 +120,11 @@ var mob = mobwrite({
   // This also increases the verbosity of server-side logs.
   debug: true,
 
+  // Set the root path for the middleware.  This is "mobwrite" by default,
+  // which is why you load the Javascript from "/mobwrite/mobwrite-client.js".
+  // Change this if you already have something else using the "/mobwrite" path.
+  root: "mobwrite",
+
   // Tell mobwrite how to load custom documents (e.g. from your database).
   // Otherwise, mobwrite just creates a new in-memory copy of each document.
   loadDocument: function(filename, callback) {
