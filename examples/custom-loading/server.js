@@ -6,7 +6,6 @@ var http = require("http")
 var mobwrite = require("../../mobwrite")
 
 mob = mobwrite({
-  logger: console,
 
   // Set a custom document loader.  This example just uses a hardcoded sentence,
   // but you can imagine reading it out of a database too.
@@ -19,6 +18,7 @@ mob = mobwrite({
     }
     callback(null, text)
   }
+
 })
 
 // Every time the document changes, we log that happening.  You could use this
@@ -41,3 +41,4 @@ var server = http.createServer(function(req, res) {
   })
 })
 server.listen(8000)
+console.log("visit http://localhost:8000 in your browser")
