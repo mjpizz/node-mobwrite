@@ -178,3 +178,5 @@ Improvements and additions are welcome!  Here's a list of ideas:
 * configuration handling for mobwrite daemon (right now it uses baked-in configs)
 * memcache-based document loading (rather than transferring via XMLRPC)
 * browser-side event for merge conflicts (e.g. so the browser could warn the user)
+* ability to connect middleware to an existing mobwrite daemon or AppEngine instance
+* reconnect behavior for clients (when the server is restarted)
