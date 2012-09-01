@@ -35,7 +35,7 @@ http://code.google.com/p/google-mobwrite/wiki/Protocol
 class Daemon
 
   # Public Daemon interface.
-  sendRawRequest: (req, callback) -> @priv.sendRawRequest(req, callback)
+  sendRawRequest: (daemonRequest, callback) -> @priv.sendRawRequest(daemonRequest, callback)
   readDocument: (filename, callback) -> @priv.readDocument(filename, callback)
   on: (eventName, callback) -> @priv.on(eventName, callback)
 
@@ -124,26 +124,24 @@ class Daemon
     # the raw response from the daemon.  If there are any errors, it gives
     # that as the first argument to the callback.
     # http://code.google.com/p/google-mobwrite/wiki/Protocol
-    sendRawRequest = (req, callback) ->
+    sendRawRequest = (daemonRequest, callback) ->
       daemonSocket = net.createConnection(port, host)
       daemonSocket.setTimeout(timeoutInMilliseconds)
 
       # Parse out the filename for this request.
-      filenameMatches = /^F\:\d+\:([^\n]+)$/m.exec(req)
+      filenameMatches = /^F\:\d+\:([^\n]+)$/m.exec(daemonRequest)
       unless filenameMatches
-        logger?.warn("missing filename in patch request:", req)
-        res.writeHead(500)
-        res.end("missing filename in patch request")
+        logger?.warn("missing filename in patch request:", daemonRequest)
         return
       filename = filenameMatches[1]
 
       # Parse out the patch content for this request.
-      patchContentMatches = /^d\:\d+\:\=\d+\s*([^\d][^\n]+)$/m.exec(req)
+      patchContentMatches = /^d\:\d+\:\=\d+\s*([^\d][^\n]+)$/m.exec(daemonRequest)
 
       # Listen for all the stages of the socket request.
       daemonSocket.on "connect", ->
-        logger?.info("[daemon-client] socket connected, sending request:\n#{req}")
-        daemonSocket.write(req)
+        logger?.info("[daemon-client] socket connected, sending request:\n#{daemonRequest}")
+        daemonSocket.write(daemonRequest)
 
       rawResponse = ""
       daemonSocket.on "data", (data) ->
