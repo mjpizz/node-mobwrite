@@ -1,7 +1,15 @@
+var fs = require("fs")
+var path = require("path")
+var http = require("http")
+
+// You would "npm install mobwrite" and use require("mobwrite") instead.
 var mobwrite = require("../../mobwrite")
-var connect = require("connect")
-var app = connect()
-app.use(connect.static(__dirname))
-app.use(connect.query())
-app.use(mobwrite({logger: console}))
-app.listen(8000)
+
+// Start a basic HTTP server using the mobwrite middleware.
+var mob = mobwrite({logger: console})
+var server = http.createServer(function(req, res) {
+  mob(req, res, function next() {
+    res.end(fs.readFileSync(path.resolve(__dirname, "index.html")).toString())
+  })
+})
+server.listen(8000)

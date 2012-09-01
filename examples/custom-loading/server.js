@@ -1,10 +1,15 @@
+var fs = require("fs")
+var path = require("path")
+var http = require("http")
+
+// You would "npm install mobwrite" and use require("mobwrite") instead.
 var mobwrite = require("../../mobwrite")
-var connect = require("connect")
-var app = connect()
-app.use(connect.static(__dirname))
-app.use(connect.query())
+
 mob = mobwrite({
   logger: console,
+
+  // Set a custom document loader.  This example just uses a hardcoded sentence,
+  // but you can imagine reading it out of a database too.
   loadDocument: function(filename, callback) {
     var text
     if (filename === "my-notes") {
@@ -15,15 +20,24 @@ mob = mobwrite({
     callback(null, text)
   }
 })
+
+// Every time the document changes, we log that happening.  You could use this
+// to decide when it's time to auto-save the document back to your database.
 mob.on("document:change", function(filename) {
   console.log("document changed:", filename)
-  mob.getDocument(filename, function(err, text) {
+  mob.readDocument(filename, function(err, text) {
     if (err) {
-      console.error("failed to get document contents for", filanem, "due to", err)
+      console.error("failed to get document contents for", filename, "due to", err)
     } else {
       console.log("new document contents for", filename, "=", text)
     }
   })
 })
-app.use(mob)
-app.listen(8000)
+
+// Start a basic HTTP server using the mobwrite middleware.
+var server = http.createServer(function(req, res) {
+  mob(req, res, function next() {
+    res.end(fs.readFileSync(path.resolve(__dirname, "index.html")).toString())
+  })
+})
+server.listen(8000)
